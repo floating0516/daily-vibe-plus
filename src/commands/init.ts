@@ -36,13 +36,14 @@ export default class Init extends Command {
       const outputDir = (await ask(rl, `Output directory [${current.outputDir || 'reports'}]: `)).trim() || current.outputDir
       const timezone = (await ask(rl, `Timezone [${current.timezone || 'Asia/Taipei'}]: `)).trim() || current.timezone
       const sourcesInput = (await ask(rl, `Enabled sources, comma-separated [${current.sources?.enabled.join(',') || 'claude-code,specstory,codex-cli,codex-vscode'}]: `)).trim()
+      const latestAnswer = (await ask(rl, `Write latest.md/latest.json by default? [Y/n]: `)).trim().toLowerCase()
       const rawDataAnswer = (await ask(rl, `Write raw data.json by default? [y/N]: `)).trim().toLowerCase()
       const redactionAnswer = (await ask(rl, `Enable redaction? [Y/n]: `)).trim().toLowerCase()
 
       const enabledSources = sourcesInput ? sourcesInput.split(',').map((source) => source.trim()).filter(Boolean) as SourceType[] : current.sources?.enabled
       const nextConfig: Partial<AppConfig> = {
         llm: {apiKey, baseUrl, model, provider: provider as AppConfig['llm']['provider']},
-        output: {writeRawData: rawDataAnswer === 'y' || rawDataAnswer === 'yes'},
+        output: {writeLatest: latestAnswer !== 'n' && latestAnswer !== 'no', writeRawData: rawDataAnswer === 'y' || rawDataAnswer === 'yes'},
         outputDir,
         redact: {...current.redact!, enabled: redactionAnswer !== 'n' && redactionAnswer !== 'no'},
         sources: {enabled: enabledSources || current.sources?.enabled || ['claude-code', 'specstory', 'codex-cli', 'codex-vscode']},
@@ -57,6 +58,7 @@ export default class Init extends Command {
       this.log(`  outputDir: ${nextConfig.outputDir}`)
       this.log(`  timezone: ${nextConfig.timezone}`)
       this.log(`  sources: ${nextConfig.sources?.enabled.join(', ')}`)
+      this.log(`  writeLatest: ${nextConfig.output?.writeLatest ? 'yes' : 'no'}`)
       this.log(`  writeRawData: ${nextConfig.output?.writeRawData ? 'yes' : 'no'}`)
       this.log(`  redaction: ${nextConfig.redact?.enabled ? 'enabled' : 'disabled'}`)
 

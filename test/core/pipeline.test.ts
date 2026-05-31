@@ -8,7 +8,7 @@ import {RedactionEngine} from '../../src/core/redact.js'
 import {AppConfig, SessionSummary} from '../../src/utils/types.js'
 
 describe('AnalysisPipeline output and dry run', () => {
-  const baseConfig: AppConfig = {llm: {provider: 'openai'}, redact: {enabled: true, patterns: []}, timezone: 'UTC'}
+  const baseConfig: AppConfig = {llm: {provider: 'openai'}, output: {writeLatest: false, writeRawData: false}, redact: {enabled: true, patterns: []}, timezone: 'UTC'}
 
   it('saves only reports by default and records actual written files', async () => {
     const out = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'daily-vibe-out-'))
@@ -29,6 +29,18 @@ describe('AnalysisPipeline output and dry run', () => {
     const files = await pipeline.saveResults(result, out, {rawData: true})
 
     expect(files.map(f => path.basename(f))).to.deep.equal(['daily.md', 'knowledge.md', 'data.json'])
+  })
+
+  it('writes latest.md and latest.json when latest output is enabled', async () => {
+    const out = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'daily-vibe-out-'))
+    const pipeline = new AnalysisPipeline(new RedactionEngine(baseConfig.redact), baseConfig)
+    const result = {dailyReport: '# Daily\n\nSummary line', date: '2026-05-30', knowledge: 'knowledge', sessions: [], stats: {totalEvents: 0, totalProblems: 0, totalSessions: 0}}
+
+    const files = await pipeline.saveResults(result, out, {latest: true})
+
+    expect(files.map(f => path.basename(f))).to.deep.equal(['daily.md', 'knowledge.md', 'latest.md', 'latest.json'])
+    expect(fs.existsSync(path.join(out, 'latest.md'))).to.equal(true)
+    expect(JSON.parse(await fs.promises.readFile(path.join(out, 'latest.json'), 'utf8')).summary).to.equal('Summary line')
   })
 
 

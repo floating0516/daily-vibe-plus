@@ -35,7 +35,7 @@ export const DEFAULT_REDACTION_PATTERNS = [
 
 const defaultConfig: AppConfig = {
   llm: {provider: 'openai'},
-  output: {writeRawData: false},
+  output: {writeLatest: true, writeRawData: false},
   outputDir: 'reports',
   redact: {enabled: true, patterns: DEFAULT_REDACTION_PATTERNS},
   sources: {enabled: ['claude-code', 'specstory', 'codex-cli', 'codex-vscode']},
@@ -60,16 +60,26 @@ export async function loadConfig(): Promise<AppConfig> {
 
 export async function saveConfig(config: Partial<AppConfig>, options: {merge?: boolean} = {}): Promise<void> {
   const base = options.merge === false ? defaultConfig : await loadConfig()
-  const updatedConfig = mergeWithDefaults({
+  const updatedConfig = mergeWithDefaults(mergeConfig(base, config))
+  await ensureDir(CONFIG_DIR)
+  await writeFile(CONFIG_FILE, JSON.stringify(updatedConfig, null, 2))
+}
+
+function mergeConfig(base: AppConfig, config: Partial<AppConfig>): Partial<AppConfig> {
+  return {
     ...base,
     ...config,
     llm: {...base.llm, ...config.llm},
-    output: {writeRawData: config.output?.writeRawData ?? base.output?.writeRawData ?? false},
-    redact: {enabled: config.redact?.enabled ?? base.redact?.enabled ?? true, patterns: config.redact?.patterns ?? base.redact?.patterns ?? DEFAULT_REDACTION_PATTERNS},
+    output: {
+      writeLatest: config.output?.writeLatest ?? base.output?.writeLatest ?? true,
+      writeRawData: config.output?.writeRawData ?? base.output?.writeRawData ?? false,
+    },
+    redact: {
+      enabled: config.redact?.enabled ?? base.redact?.enabled ?? true,
+      patterns: config.redact?.patterns ?? base.redact?.patterns ?? DEFAULT_REDACTION_PATTERNS,
+    },
     sources: {enabled: config.sources?.enabled ?? base.sources?.enabled ?? defaultConfig.sources!.enabled},
-  })
-  await ensureDir(CONFIG_DIR)
-  await writeFile(CONFIG_FILE, JSON.stringify(updatedConfig, null, 2))
+  }
 }
 
 export async function updateLLMConfig(llmConfig: Partial<LLMConfig>): Promise<void> {
@@ -81,6 +91,7 @@ function mergeWithDefaults(config: Partial<AppConfig>): AppConfig {
   return {
     llm: {...defaultConfig.llm, ...config.llm},
     output: {
+      writeLatest: config.output?.writeLatest ?? defaultConfig.output!.writeLatest,
       writeRawData: config.output?.writeRawData ?? defaultConfig.output!.writeRawData,
     },
     outputDir: config.outputDir || defaultConfig.outputDir,

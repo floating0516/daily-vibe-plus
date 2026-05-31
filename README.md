@@ -19,6 +19,8 @@ This fork focuses on safer defaults and better operator control: dry runs, sourc
 - Config validation through `daily-vibe config test`.
 - Interactive setup through `daily-vibe init`.
 - Raw `data.json` output is disabled by default.
+- Stable `latest.md` and `latest.json` output for menu bar and desktop integrations.
+- SwiftBar integration for showing the latest report in the macOS menu bar.
 
 ## Installation
 
@@ -131,6 +133,19 @@ Write raw analysis data explicitly:
 daily-vibe analyze today --out ./reports --raw-data
 ```
 
+When `--out` is used, Daily Vibe Plus also writes stable latest-report files by default:
+
+```text
+./reports/latest.md
+./reports/latest.json
+```
+
+Disable this behavior with:
+
+```bash
+daily-vibe analyze today --out ./reports --no-latest
+```
+
 ## Commands
 
 ### `daily-vibe init`
@@ -206,6 +221,7 @@ Important options:
 --base-url <url>          Override provider base URL
 --model <model>           Override model
 --no-redact               Disable redaction
+--no-latest               Do not write latest.md and latest.json
 --no-progress             Disable progress output
 ```
 
@@ -239,10 +255,15 @@ daily-vibe redact test --file ./sample.txt
 
 ## Output files
 
-By default, analysis writes only:
+By default, analysis writes the dated report files:
 
 - `daily.md`
 - `knowledge.md`
+
+When `--out` is used, it also maintains stable integration files:
+
+- `latest.md`
+- `latest.json`
 
 `data.json` contains structured session details and is not written by default. Use `--raw-data` or set `output.writeRawData` to `true` only when you explicitly need it.
 
@@ -266,6 +287,7 @@ Example:
   },
   "outputDir": "reports",
   "output": {
+    "writeLatest": true,
     "writeRawData": false
   },
   "sources": {
@@ -295,6 +317,38 @@ Recommended workflow:
 6. Do not commit generated reports or raw data to public repositories.
 
 Redaction reduces risk but is not a guarantee. The configured LLM provider receives the redacted session content used for summary generation.
+
+## SwiftBar menu bar integration
+
+Daily Vibe Plus includes a SwiftBar plugin in:
+
+```text
+integrations/swiftbar/daily-vibe-plus.5m.sh
+```
+
+Install SwiftBar:
+
+```bash
+brew install --cask swiftbar
+```
+
+Generate a latest report:
+
+```bash
+daily-vibe analyze today --out ~/daily-vibe-reports
+```
+
+Install the plugin:
+
+```bash
+mkdir -p ~/SwiftBarPlugins
+cp integrations/swiftbar/daily-vibe-plus.5m.sh ~/SwiftBarPlugins/
+chmod +x ~/SwiftBarPlugins/daily-vibe-plus.5m.sh
+```
+
+Open SwiftBar and select `~/SwiftBarPlugins` as the plugin folder. The menu bar item will refresh every five minutes and read `~/daily-vibe-reports/latest.json`.
+
+See `integrations/swiftbar/README.md` for details.
 
 ## Development
 

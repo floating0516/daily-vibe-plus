@@ -61,11 +61,33 @@ export interface AnalysisResult {
   dailyReport: string
   date: string
   knowledge: string
+  latestReport?: LatestReport
   outputFiles?: string[]
   preview?: SessionPreview[]
   previewResult?: AnalysisPreviewResult
   sessions: SessionSummary[]
   stats: AnalysisStats
+}
+
+export interface LatestReport {
+  blockers: string[]
+  date: string
+  files: {
+    daily?: string
+    knowledge?: string
+    latestMarkdown?: string
+    rawData?: string
+  }
+  highlights: string[]
+  stats: {
+    chunks?: number
+    totalEvents: number
+    totalProblems: number
+    totalSessions: number
+  }
+  summary: string
+  title: string
+  updatedAt: string
 }
 
 export interface AnalysisPreviewResult {
@@ -127,6 +149,7 @@ export interface LLMConfig {
 export interface AppConfig {
   llm: LLMConfig
   output?: {
+    writeLatest: boolean
     writeRawData: boolean
   }
   outputDir?: string

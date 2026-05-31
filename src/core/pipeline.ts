@@ -5,6 +5,7 @@ import {loadConfig} from '../utils/config.js'
 import {ensureDir, writeFile} from '../utils/fs.js'
 import {formatDate, getDateRange, getDayRange} from '../utils/time.js'
 import {AnalysisPreviewResult, AnalysisProgressEvent, AnalysisResult, AppConfig, SessionEvent, SessionPreview, SessionSummary, SourceType} from '../utils/types.js'
+import {writeLatestReport} from './latest-report.js'
 import {createLLMClient, LLMClient, LLMOverrides, resolveLLMConfig} from './llm.js'
 import {RedactionEngine} from './redact.js'
 
@@ -15,6 +16,7 @@ export interface AnalyzeOptions {
   dryRun?: boolean
   enableRedaction?: boolean
   excludeProjects?: string[]
+  latest?: boolean
   minEvents?: number
   model?: string
   outputDir?: string
@@ -37,6 +39,7 @@ interface AnalyzeWindowInput {
 
 interface SavePreviewInput {
   date: string
+  latest: boolean
   outputDir: string
   prefix?: string
   rawData: boolean
@@ -81,16 +84,24 @@ export class AnalysisPipeline {
     return this.analyzeWindow({dateStr: formatDate(date), end: dayEnd, options, start: dayStart})
   }
 
-  async saveResults(result: AnalysisResult, outputDir: string, options: {prefix?: string; rawData?: boolean} = {}): Promise<string[]> {
+  async saveResults(result: AnalysisResult, outputDir: string, options: {latest?: boolean; prefix?: string; rawData?: boolean} = {}): Promise<string[]> {
     const reportDir = this.getReportDir(outputDir, result.date, options.prefix)
     await ensureDir(reportDir)
     const files = [path.join(reportDir, 'daily.md'), path.join(reportDir, 'knowledge.md')]
     await writeFile(files[0], result.dailyReport)
     await writeFile(files[1], result.knowledge)
+
+    let rawDataFile: string | undefined
     if (options.rawData) {
-      const dataFile = path.join(reportDir, 'data.json')
-      await writeFile(dataFile, JSON.stringify(result, null, 2))
-      files.push(dataFile)
+      rawDataFile = path.join(reportDir, 'data.json')
+      await writeFile(rawDataFile, JSON.stringify(result, null, 2))
+      files.push(rawDataFile)
+    }
+
+    if (options.latest) {
+      const latestFiles = await writeLatestReport(result, outputDir, {daily: files[0], knowledge: files[1], rawData: rawDataFile})
+      result.latestReport = JSON.parse(await import('node:fs').then((fs) => fs.promises.readFile(latestFiles[1], 'utf8')))
+      files.push(...latestFiles)
     }
 
     return files
@@ -119,6 +130,7 @@ export class AnalysisPipeline {
     this.reportProgress(options, {detail: `${chunks.length} chunk(s)`, stage: 'chunk', status: 'done'}, `Estimated ${chunks.length} chunk(s).`)
 
     const rawData = options.rawData ?? this.config.output?.writeRawData ?? false
+    const latest = options.latest ?? this.config.output?.writeLatest ?? true
     const previewResult = this.createAnalysisPreview({chunks: chunks.length, date: dateStr, enabledSources, eventsAfterFilter: filteredEvents.length, eventsBeforeFilter: collected.events.length, filesScanned: collected.filesScanned, options, prefix, processedSessions, rawData, sessionsBeforeFilter: collected.sessions.length})
     const baseResult: AnalysisResult = {
       dailyReport: '',
@@ -160,7 +172,7 @@ export class AnalysisPipeline {
 
     if (options.outputDir) {
       this.reportProgress(options, {stage: 'write', status: 'start'}, 'Writing report files...')
-      baseResult.outputFiles = await this.saveResults(baseResult, options.outputDir, {prefix, rawData})
+      baseResult.outputFiles = await this.saveResults(baseResult, options.outputDir, {latest, prefix, rawData})
       this.reportProgress(options, {detail: `${baseResult.outputFiles.length} file(s)`, stage: 'write', status: 'done'}, `Wrote ${baseResult.outputFiles.length} report file(s).`)
     }
 
@@ -185,7 +197,7 @@ export class AnalysisPipeline {
       filesScanned,
       filters: {excludeProjects: options.excludeProjects, minEvents: options.minEvents, projects: options.projects},
       llm: {baseUrl: resolvedLlm.baseUrl, model: resolvedLlm.model, provider: resolvedLlm.provider},
-      output: {rawData, wouldWriteFiles: options.outputDir ? this.previewOutputFiles({date, outputDir: options.outputDir, prefix, rawData}) : []},
+      output: {rawData, wouldWriteFiles: options.outputDir ? this.previewOutputFiles({date, latest: options.latest ?? this.config.output?.writeLatest ?? true, outputDir: options.outputDir, prefix, rawData}) : []},
       redactionEnabled: options.enableRedaction !== false,
       sessionsAfterFilter: processedSessions.length,
       sessionsBeforeFilter,
@@ -274,6 +286,7 @@ export class AnalysisPipeline {
     const reportDir = this.getReportDir(input.outputDir, input.date, input.prefix)
     const files = [path.join(reportDir, 'daily.md'), path.join(reportDir, 'knowledge.md')]
     if (input.rawData) files.push(path.join(reportDir, 'data.json'))
+    if (input.latest) files.push(path.join(input.outputDir, 'latest.md'), path.join(input.outputDir, 'latest.json'))
     return files
   }
 

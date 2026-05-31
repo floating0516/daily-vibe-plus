@@ -19,6 +19,8 @@ Daily Vibe Plus 是一个命令行工具，用来把本地 AI 编程会话整理
 - 通过 `daily-vibe config test` 检查配置。
 - 通过 `daily-vibe init` 进行交互式初始化。
 - 默认不写 raw `data.json`。
+- 稳定输出 `latest.md` 和 `latest.json`，方便菜单栏和桌面集成读取。
+- 提供 SwiftBar 集成，用于在 macOS 菜单栏显示最新日报。
 
 ## 安装
 
@@ -131,6 +133,19 @@ daily-vibe analyze range --from 2026-05-01 --to 2026-05-07 --out ./reports
 daily-vibe analyze today --out ./reports --raw-data
 ```
 
+使用 `--out` 时，Daily Vibe Plus 默认还会维护稳定的 latest 文件：
+
+```text
+./reports/latest.md
+./reports/latest.json
+```
+
+如需关闭：
+
+```bash
+daily-vibe analyze today --out ./reports --no-latest
+```
+
 ## 命令说明
 
 ### `daily-vibe init`
@@ -206,6 +221,7 @@ daily-vibe analyze today [options]
 --base-url <url>          覆盖 provider base URL
 --model <model>           覆盖模型
 --no-redact               禁用脱敏
+--no-latest               不写 latest.md 和 latest.json
 --no-progress             禁用进度输出
 ```
 
@@ -239,10 +255,15 @@ daily-vibe redact test --file ./sample.txt
 
 ## 输出文件
 
-默认只写出：
+默认会写出日期目录中的报告文件：
 
 - `daily.md`
 - `knowledge.md`
+
+使用 `--out` 时，还会维护稳定的集成文件：
+
+- `latest.md`
+- `latest.json`
 
 `data.json` 包含结构化 session 细节，默认不会写出。只有在明确使用 `--raw-data`，或把 `output.writeRawData` 设置为 `true` 时才会写出。
 
@@ -266,6 +287,7 @@ daily-vibe redact test --file ./sample.txt
   },
   "outputDir": "reports",
   "output": {
+    "writeLatest": true,
     "writeRawData": false
   },
   "sources": {
@@ -295,6 +317,38 @@ Daily Vibe Plus 会读取本地 AI 编程会话日志。这些日志可能包含
 6. 不要把生成的 reports 或 raw data 提交到公开仓库。
 
 脱敏可以降低风险，但不是绝对保证。配置的 LLM provider 会收到用于生成总结的已脱敏 session 内容。
+
+## SwiftBar 菜单栏集成
+
+Daily Vibe Plus 提供 SwiftBar 插件：
+
+```text
+integrations/swiftbar/daily-vibe-plus.5m.sh
+```
+
+安装 SwiftBar：
+
+```bash
+brew install --cask swiftbar
+```
+
+先生成一次 latest report：
+
+```bash
+daily-vibe analyze today --out ~/daily-vibe-reports
+```
+
+安装插件：
+
+```bash
+mkdir -p ~/SwiftBarPlugins
+cp integrations/swiftbar/daily-vibe-plus.5m.sh ~/SwiftBarPlugins/
+chmod +x ~/SwiftBarPlugins/daily-vibe-plus.5m.sh
+```
+
+打开 SwiftBar，并选择 `~/SwiftBarPlugins` 作为插件目录。菜单栏项目会每五分钟刷新一次，并读取 `~/daily-vibe-reports/latest.json`。
+
+更多说明见 `integrations/swiftbar/README.md`。
 
 ## 开发
 
