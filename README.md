@@ -1,366 +1,333 @@
 # Daily Vibe Plus
 
-![Daily Vibe](https://www.daily-vibe.online/twitter-image.png)
-
 **English** | [中文](README_CN.md)
 
-Daily Vibe is a powerful CLI tool that analyzes your coding sessions from Claude Code and Codex CLI to generate insightful daily reports and knowledge extraction. Transform your development activity into meaningful insights with AI-powered analysis.
+Daily Vibe Plus is a command-line tool for turning local AI coding sessions into daily or weekly work reports. It reads local Claude Code, Codex CLI, Codex VS Code, and SpecStory history files, redacts sensitive content, and uses your configured LLM provider to generate readable summaries.
 
-## ✨ Features
+This fork focuses on safer defaults and better operator control: dry runs, source filters, config checks, interactive setup, stronger redaction, and raw data output only when explicitly requested.
 
-- 📊 **Daily Reports**: Generate comprehensive daily development summaries
-- 🧠 **Knowledge Extraction**: Extract problems, solutions, and best practices from your coding sessions
-- 🔒 **Data Redaction**: Automatically redact sensitive information (API keys, secrets, etc.)
-- 🔄 **Chunked Analysis**: Handle large datasets with parallel processing for better performance
-- 🌐 **Multi-LLM Support**: Compatible with OpenAI, Anthropic Claude, and any OpenAI-compatible API
-- 📁 **Multiple Data Sources**: Support for Claude Code, Codex CLI, and VS Code extensions
-- 🌍 **Timezone Support**: Accurate time-based filtering with timezone awareness
+## Features
 
-## 🚀 Quick Start
+- Daily and range-based report generation.
+- Knowledge extraction from problems, fixes, tool output, and implementation notes.
+- Redaction for API keys, tokens, credentials, emails, JWTs, cloud keys, and private keys.
+- Recursive redaction for message content, metadata, tool runs, and file diffs.
+- Dry-run and preview modes that scan and estimate work without calling an LLM.
+- Source selection for Claude Code, Codex CLI, Codex VS Code, and SpecStory.
+- Project filters, exclude filters, and minimum event filtering.
+- OpenAI, Anthropic, and OpenAI-compatible generic providers.
+- Config validation through `daily-vibe config test`.
+- Interactive setup through `daily-vibe init`.
+- Raw `data.json` output is disabled by default.
 
-### Installation
-
-```bash
-# Install globally via npm
-npm install -g daily-vibe
-
-# Or install globally via yarn
-yarn global add daily-vibe
-
-# Or install globally via pnpm
-pnpm add -g daily-vibe
-```
-
-### Verify Installation
+## Installation
 
 ```bash
-# Check if installed correctly
-daily-vibe --version
-
-# Get help
-daily-vibe --help
+pnpm install
+pnpm run build
 ```
 
-### Basic Usage
+For local development, run commands from the repository root:
 
-1. **Configure your LLM provider:**
 ```bash
-# For OpenAI
-daily-vibe config set --provider openai --api-key sk-your-api-key
-
-# For Anthropic Claude
-daily-vibe config set --provider anthropic --api-key sk-ant-your-api-key
-
-# For custom OpenAI-compatible API (e.g., DashScope)
-daily-vibe config set --provider generic --base-url https://dashscope.aliyuncs.com/compatible-mode/v1 --api-key sk-your-api-key --model qwen-plus
+node ./bin/run.js --help
 ```
 
-2. **Analyze today's sessions:**
+If you publish or install the package globally, the CLI command remains:
+
+```bash
+daily-vibe
+```
+
+## Quick start
+
+### 1. Configure an LLM provider
+
+OpenAI:
+
+```bash
+daily-vibe config set --provider openai --api-key sk-your-api-key --model gpt-4o-mini
+```
+
+Anthropic:
+
+```bash
+daily-vibe config set --provider anthropic --api-key sk-ant-your-api-key --model claude-3-haiku-20240307
+```
+
+OpenAI-compatible provider:
+
+```bash
+daily-vibe config set \
+  --provider generic \
+  --base-url https://api.example.com/v1 \
+  --api-key sk-your-api-key \
+  --model your-model
+```
+
+You can also use the interactive setup wizard:
+
+```bash
+daily-vibe init
+```
+
+### 2. Check configuration
+
+Local checks only:
+
+```bash
+daily-vibe config test --skip-llm
+```
+
+Include an LLM smoke test:
+
+```bash
+daily-vibe config test
+```
+
+JSON output:
+
+```bash
+daily-vibe config test --skip-llm --json
+```
+
+### 3. Preview before generating reports
+
+Dry run for today:
+
+```bash
+daily-vibe analyze today --dry-run
+```
+
+Dry run as parseable JSON:
+
+```bash
+daily-vibe analyze today --dry-run --json
+```
+
+Preview Claude Code only:
+
+```bash
+daily-vibe analyze today --source claude-code --dry-run --preview
+```
+
+### 4. Generate reports
+
+Generate today's report:
+
 ```bash
 daily-vibe analyze today --out ./reports
 ```
 
-3. **Analyze a date range:**
+Generate a date range:
+
 ```bash
-daily-vibe analyze range --from 2025-01-01 --to 2025-01-07 --out ./reports
+daily-vibe analyze range --from 2026-05-01 --to 2026-05-07 --out ./reports
 ```
 
-## 📖 Commands Reference
+Write raw analysis data explicitly:
 
-### 🔧 Configuration
-
-#### Set LLM Configuration
 ```bash
-daily-vibe config set [OPTIONS]
-
-Options:
-  -p, --provider <provider>     LLM provider (openai|anthropic|generic)
-  -k, --api-key <key>          API key for the provider
-  -u, --base-url <url>         Base URL for OpenAI-compatible APIs
-  -m, --model <model>          Model name to use
-  -s, --show                   Show current configuration
+daily-vibe analyze today --out ./reports --raw-data
 ```
 
-**Examples:**
+## Commands
+
+### `daily-vibe init`
+
+Interactively creates or updates `~/.daily-vibe/config.json`.
+
+It collects:
+
+- LLM provider.
+- Model.
+- Base URL.
+- API key.
+- Output directory.
+- Timezone.
+- Enabled sources.
+- Whether raw `data.json` should be written by default.
+- Whether redaction should be enabled.
+
+### `daily-vibe config set`
+
+Sets or displays LLM configuration.
+
 ```bash
-# Configure OpenAI
-daily-vibe config set --provider openai --api-key sk-proj-abc123... --model gpt-4
-
-# Configure Anthropic
-daily-vibe config set --provider anthropic --api-key sk-ant-api03-abc123...
-
-# Configure DashScope (Alibaba Cloud)
-daily-vibe config set --provider generic \
-  --base-url https://dashscope.aliyuncs.com/compatible-mode/v1 \
-  --api-key sk-abc123... \
-  --model qwen-turbo
-
-# Show current configuration
+daily-vibe config set --provider generic --base-url https://api.example.com/v1 --api-key sk-your-api-key --model your-model
 daily-vibe config set --show
 ```
 
-### 📊 Analysis
+### `daily-vibe config test`
 
-#### Analyze Today's Sessions
+Validates configuration, redaction regexes, source availability, and optionally LLM connectivity.
+
 ```bash
-daily-vibe analyze today [OPTIONS]
-
-Options:
-  -o, --out <directory>        Output directory for reports
-  -j, --json                   Output results as JSON
-  -p, --provider <provider>    Override LLM provider
-  -m, --model <model>         Override model name
-  --no-redact                  Disable content redaction
+daily-vibe config test --skip-llm
+daily-vibe config test --json
 ```
 
-**Examples:**
-```bash
-# Basic analysis
-daily-vibe analyze today
+### `daily-vibe sources scan`
 
-# Save reports to directory
-daily-vibe analyze today --out ./reports
+Scans for local supported data sources.
 
-# Get JSON output
-daily-vibe analyze today --json
-
-# Disable redaction for debugging
-daily-vibe analyze today --no-redact --out ./debug-reports
-```
-
-#### Analyze Date Range
-```bash
-daily-vibe analyze range [OPTIONS]
-
-Options:
-  -f, --from <date>           Start date (YYYY-MM-DD)
-  -t, --to <date>             End date (YYYY-MM-DD)
-  -o, --out <directory>       Output directory for reports
-  -j, --json                  Output results as JSON
-  -p, --provider <provider>   Override LLM provider
-  -m, --model <model>        Override model name
-  --no-redact                 Disable content redaction
-```
-
-**Examples:**
-```bash
-# Analyze last week
-daily-vibe analyze range --from 2025-01-01 --to 2025-01-07 --out ./reports
-
-# Analyze with custom date formats
-daily-vibe analyze range --from "2025-01-01" --to "today" --out ./reports
-
-# Use different model for analysis
-daily-vibe analyze range --from yesterday --to today --model gpt-4-turbo --out ./reports
-```
-
-### 📁 Data Sources
-
-#### Scan Available Data Sources
 ```bash
 daily-vibe sources scan
 ```
 
-This command will show:
-- Claude Code project files (`~/.claude/projects/**/*.jsonl`)
-- Codex CLI session files (`~/.codex/sessions/**/*.jsonl`)
-- Codex CLI history files (`~/.codex/history/**/*.jsonl`)
-- VS Code Codex extension data
-- SpecStory history files (`**/.specstory/history/**`)
+Supported sources:
 
-### 🔒 Data Redaction
+- `claude-code`: `~/.claude/projects/**/*.jsonl`
+- `specstory`: `**/.specstory/history/**/*.md` and `**/.specstory/history/**/*.jsonl`
+- `codex-cli`: `~/.codex/sessions/**/*.jsonl` and `~/.codex/history/**/*.jsonl`
+- `codex-vscode`: Codex-related VS Code global storage files
 
-#### Test Redaction Rules
+### `daily-vibe analyze today`
+
+Analyzes today's local sessions.
+
 ```bash
-daily-vibe redact test [TEXT]
-
-Options:
-  -f, --file <file>           Test redaction on a file
+daily-vibe analyze today [options]
 ```
 
-**Examples:**
-```bash
-# Test with text
-daily-vibe redact test "My API key is sk-proj-abc123xyz"
+Important options:
 
-# Test with file
-daily-vibe redact test --file ./sensitive-file.txt
+```text
+--dry-run                 Scan, filter, redact, and estimate chunks without LLM calls or writes
+--preview                 Show a session preview
+--json                    Output JSON
+--out <directory>         Write reports to a directory
+--raw-data                Also write data.json
+--source <source>         Include a source; repeatable
+--project <project>       Include a project; repeatable
+--exclude-project <name>  Exclude a project; repeatable
+--min-events <number>     Only include sessions with at least this many events
+--provider <provider>     Override provider
+--base-url <url>          Override provider base URL
+--model <model>           Override model
+--no-redact               Disable redaction
+--no-progress             Disable progress output
 ```
 
-## 📄 Report Structure
+Examples:
 
-When you run analysis, Daily Vibe generates three types of files:
+```bash
+daily-vibe analyze today --dry-run --json
+daily-vibe analyze today --source claude-code --project my-project --dry-run
+daily-vibe analyze today --out ./reports
+daily-vibe analyze today --out ./reports --raw-data
+```
 
-### 📋 Daily Report (`daily.md`)
-- **Overview**: Session count, events, problems identified
-- **Key Outputs**: Major accomplishments and deliverables
-- **Test Results**: Success/failure statistics
-- **Todo Items**: Pending tasks and priorities
+### `daily-vibe analyze range`
 
-### 🧠 Knowledge Base (`knowledge.md`)
-- **Build/Compilation Issues**: TypeScript errors, dependency problems
-- **Tool Configuration**: ESLint, testing setup, environment issues
-- **Code Implementation**: Design patterns, best practices
-- **Problem-Solution Pairs**: Categorized by technology domain
+Analyzes a date range.
 
-### 📊 Raw Data (`data.json`)
-- Complete analysis results in JSON format
-- Session details with timestamps
-- Event-level information
-- Statistics and metadata
+```bash
+daily-vibe analyze range --from 2026-05-01 --to 2026-05-07 --out ./reports
+```
 
-## ⚙️ Configuration
+The range command supports the same analysis, filter, redaction, provider, JSON, preview, and raw-data options as `analyze today`.
 
-Daily Vibe uses cosmiconfig for configuration management. Configuration is automatically loaded from:
+### `daily-vibe redact test`
 
-- `package.json` (`dailyVibe` property)
-- `.dailyviberc.json`
-- `.dailyviberc.js`
-- `dailyvibe.config.js`
+Tests redaction rules against input text or a file.
 
-### Example Configuration File (`.dailyviberc.json`)
+```bash
+daily-vibe redact test "Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.abc.def"
+daily-vibe redact test --file ./sample.txt
+```
+
+## Output files
+
+By default, analysis writes only:
+
+- `daily.md`
+- `knowledge.md`
+
+`data.json` contains structured session details and is not written by default. Use `--raw-data` or set `output.writeRawData` to `true` only when you explicitly need it.
+
+## Configuration
+
+The default config path is:
+
+```text
+~/.daily-vibe/config.json
+```
+
+Example:
 
 ```json
 {
   "llm": {
-    "provider": "openai",
-    "apiKey": "sk-proj-your-api-key",
-    "model": "gpt-4",
-    "baseUrl": "https://api.openai.com/v1"
+    "provider": "generic",
+    "apiKey": "sk-your-api-key",
+    "baseUrl": "https://api.example.com/v1",
+    "model": "your-model"
   },
-  "timezone": "Asia/Shanghai",
-  "outputDir": "./reports",
+  "outputDir": "reports",
+  "output": {
+    "writeRawData": false
+  },
+  "sources": {
+    "enabled": ["claude-code", "specstory", "codex-cli", "codex-vscode"]
+  },
   "redact": {
     "enabled": true,
-    "patterns": [
-      "sk-[a-zA-Z0-9]{20,}",
-      "ghp_[a-zA-Z0-9]{36}",
-      "[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}"
-    ]
-  }
+    "patterns": []
+  },
+  "timezone": "Asia/Taipei"
 }
 ```
 
-## 🔒 Security & Privacy
+Configuration can also be loaded through cosmiconfig-compatible files, but `~/.daily-vibe/config.json` is the primary path used by the CLI config commands.
 
-Daily Vibe includes built-in data redaction to protect sensitive information:
+## Privacy and security notes
 
-- **API Keys**: OpenAI, GitHub, AWS, etc.
-- **Tokens**: JWT tokens, access tokens
-- **URLs**: Internal URLs, database connections
-- **IP Addresses**: IPv4 and IPv6 addresses
-- **Email Addresses**: Personal and work emails
-- **File Paths**: System paths that might contain usernames
+Daily Vibe Plus reads local AI coding session logs. These logs may contain prompts, tool output, file paths, code snippets, tokens, credentials, private URLs, and other sensitive data.
 
-You can customize redaction patterns in the configuration file or disable redaction entirely with `--no-redact`.
+Recommended workflow:
 
-## 🧩 Supported Data Sources
+1. Run `daily-vibe sources scan`.
+2. Run `daily-vibe analyze today --dry-run --preview`.
+3. Use `--source`, `--project`, `--exclude-project`, and `--min-events` to narrow the input.
+4. Generate reports only after previewing the scope.
+5. Avoid `--raw-data` unless you need structured debugging data.
+6. Do not commit generated reports or raw data to public repositories.
 
-### Claude Code
-- Project session files: `~/.claude/projects/**/*.jsonl`
-- All conversation history and tool usage
+Redaction reduces risk but is not a guarantee. The configured LLM provider receives the redacted session content used for summary generation.
 
-### Codex CLI
-- Active sessions: `~/.codex/sessions/**/*.jsonl`
-- Conversation history: `~/.codex/history/**/*.jsonl`
+## Development
 
-### SpecStory
-- History files: `**/.specstory/history/**/*.{md,jsonl}`
-- Markdown conversation logs
+Install dependencies:
 
-### VS Code Extensions
-- Codex/ChatGPT extension data from VS Code global storage
-- Platform-specific paths (macOS, Linux, Windows)
-
-## 🎯 Use Cases
-
-- **Daily Standups**: Generate comprehensive development summaries
-- **Knowledge Management**: Build a searchable database of solutions
-- **Code Review Prep**: Identify key changes and decisions
-- **Learning Tracking**: Monitor skill development and problem-solving patterns
-- **Team Sharing**: Document best practices and common pitfalls
-- **Project Documentation**: Auto-generate development logs
-
-## 🛠️ Development
-
-If you want to contribute to Daily Vibe or run it from source:
-
-### Prerequisites
-- Node.js >= 18.0.0
-- pnpm (recommended) or npm
-
-### Setup from Source
 ```bash
-git clone https://github.com/AoWangg/daily-vibe.git
-cd daily-vibe
 pnpm install
-pnpm run build
-
-# Link for local development
-npm link
 ```
 
-### Testing
+Build:
+
 ```bash
-pnpm test
+pnpm run build
+```
+
+Run tests:
+
+```bash
+pnpm exec mocha "test/**/*.test.ts"
+```
+
+Run lint:
+
+```bash
 pnpm run lint
 ```
 
-## 🔄 Updates
-
-Keep Daily Vibe up to date:
+Run the full test script:
 
 ```bash
-# Update to latest version
-npm update -g daily-vibe
-
-# Check current version
-daily-vibe --version
+pnpm test
 ```
 
-## 🗑️ Uninstallation
+## Repository
 
-To remove Daily Vibe:
-
-```bash
-# Uninstall globally
-npm uninstall -g daily-vibe
-
-# Or with yarn
-yarn global remove daily-vibe
-
-# Or with pnpm
-pnpm remove -g daily-vibe
-```
-
-## 📝 License
-
-MIT License - see [LICENSE](LICENSE) file for details.
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
-
-## 🐛 Issues
-
-If you encounter any issues or have feature requests, please file them in the [GitHub Issues](https://github.com/AoWangg/daily-vibe/issues).
-
-## 🙏 Acknowledgments
-
-- Built with [oclif](https://oclif.io/) - The Open CLI Framework
-- Powered by [OpenAI](https://openai.com/) and [Anthropic](https://anthropic.com/) APIs
-- Supports [Claude Code](https://claude.ai/code) and [Codex CLI](https://github.com/microsoft/vscode-codex) sessions
-
-### New Analysis and Privacy Options
-
-- `daily-vibe init` interactively creates or updates config and masks secrets before saving.
-- `daily-vibe config test --skip-llm` validates config, provider/model/base URL, redaction regexes, and source availability without network calls. Omit `--skip-llm` for a minimal LLM smoke test.
-- `analyze today` and `analyze range` accept `--provider`, `--model`, and `--base-url` overrides.
-- Use `--dry-run` to scan/filter/redact and estimate chunks without calling an LLM or writing reports; add `--preview` for session summaries. `--json --dry-run` prints pure JSON.
-- Reports written with `--out` include `daily.md` and `knowledge.md` by default. Add `--raw-data` to opt in to writing `data.json`.
-- Source filters: repeat `--source`, `--project`, and `--exclude-project`; use `--min-events` to ignore short sessions. Supported sources are `claude-code`, `specstory`, `codex-cli`, and `codex-vscode`.
-
-### Privacy
-
-Redaction is enabled by default and applies recursively to event content, tool inputs/outputs/errors/commands, file diffs, and metadata while preserving timestamps. Default rules cover common API keys, bearer tokens, GitHub/GitLab tokens, AWS keys, emails, and phone/SSN-like numbers. Use `--no-redact` only for local debugging. Raw session data is never written unless `--raw-data` is supplied.
-
+This repository is a clean-history upgrade based on the Daily Vibe project. It keeps the CLI name `daily-vibe` for compatibility while using the package and repository name `daily-vibe-plus`.

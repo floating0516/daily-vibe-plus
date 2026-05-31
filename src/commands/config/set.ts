@@ -75,7 +75,7 @@ static override flags = {
 
     try {
       await updateLLMConfig(updates)
-      console.log(chalk.green('✓ Configuration updated successfully'))
+      console.log(chalk.green('Configuration updated successfully'))
       
       // Show what was updated
       console.log(chalk.cyan('\nUpdated configuration:'))

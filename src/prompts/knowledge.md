@@ -22,7 +22,7 @@
 ```markdown
 # 知识库 - {date}
 
-## 🐛 构建/编译问题
+## 构建/编译问题
 
 ### TypeScript 类型错误
 **现象**：
@@ -45,7 +45,7 @@ npm install @types/node --save-dev
 
 **踩坑提示**：Node.js 环境下需要明确引入 DOM types
 
-## 🔧 工具配置问题
+## 工具配置问题
 
 ### ESLint 配置冲突
 **现象**：...
@@ -53,7 +53,7 @@ npm install @types/node --save-dev
 **解决**：...
 **通用规则**：...
 
-## 📦 依赖管理
+## 依赖管理
 
 ### 版本兼容性问题
 **现象**：...

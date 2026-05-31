@@ -28,7 +28,7 @@ export default class SourcesScan extends Command {
   }
 
   private displaySourceInfo(source: DataSource): void {
-    const status = source.available ? chalk.green('✓ Available') : chalk.red('✗ Not found')
+    const status = source.available ? chalk.green('Available') : chalk.red('Not found')
     const fileCount = source.available ? chalk.cyan(`(${source.filesFound} files)`) : chalk.gray('(0 files)')
     this.log(`${status} ${chalk.bold(source.name)} ${fileCount}`)
     this.log(`  ${chalk.gray(source.description)}`)

@@ -79,7 +79,7 @@ export default class ConfigTest extends Command {
 
     this.log(chalk.cyan('Configuration test results:\n'))
     for (const check of report.checks) {
-      const marker = check.status === 'ok' ? chalk.green('✓') : check.status === 'skipped' ? chalk.yellow('-') : chalk.red('✗')
+      const marker = check.status === 'ok' ? chalk.green('OK') : check.status === 'skipped' ? chalk.yellow('-') : chalk.red('FAIL')
       this.log(`${marker} ${check.name}${check.detail ? chalk.dim(` — ${check.detail}`) : ''}`)
     }
 

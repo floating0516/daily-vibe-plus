@@ -19,13 +19,13 @@ static override examples = [
   async run(): Promise<void> {
     const { args } = await this.parse(RedactTest)
     
-    console.log(chalk.cyan('🛡️  Testing data redaction patterns\n'))
+    console.log(chalk.cyan('Testing data redaction patterns\n'))
 
     const config = await loadConfig()
     const engine = new RedactionEngine(config.redact)
 
     if (!config.redact?.enabled) {
-      console.log(chalk.yellow('⚠️  Redaction is currently disabled in configuration'))
+      console.log(chalk.yellow('Warning: Redaction is currently disabled in configuration'))
       console.log(chalk.dim('Enable with: daily-vibe config set --redact-enabled true\n'))
     }
 
@@ -42,18 +42,18 @@ static override examples = [
       console.log(`  ${result.redacted}\n`)
 
       if (result.matches.length > 0) {
-        console.log(chalk.green(`✓ Found ${result.matches.length} sensitive item(s):`))
+        console.log(chalk.green(`Found ${result.matches.length} sensitive item(s):`))
         for (const [idx, match] of result.matches.entries()) {
           console.log(`  ${idx + 1}. "${match.match}" → "${match.replacement}" (${chalk.dim(match.pattern)})`)
         }
       } else {
-        console.log(chalk.gray('ℹ No sensitive patterns detected'))
+        console.log(chalk.gray('No sensitive patterns detected'))
       }
       
       console.log() // Empty line between tests
     }
 
-    console.log(chalk.cyan('📋 Current redaction patterns:'))
+    console.log(chalk.cyan('Current redaction patterns:'))
     if (config.redact?.patterns && config.redact.patterns.length > 0) {
       for (const [idx, pattern] of config.redact.patterns.entries()) {
         console.log(`  ${idx + 1}. ${chalk.dim(pattern)}`)
