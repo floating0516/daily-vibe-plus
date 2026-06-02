@@ -342,21 +342,59 @@ Daily Vibe Plus 会读取本地 AI 编程会话日志。这些日志可能包含
 
 ## 原生 macOS App 和 WidgetKit
 
-Daily Vibe Plus 也包含一个原生 macOS companion app：
+Daily Vibe Plus 现在由三层组成：
+
+```text
+daily-vibe CLI
+  -> 生成 ~/daily-vibe-reports/latest.json
+
+DailyVibePlus macOS App
+  -> 从用户选择的报告目录读取 latest.json
+  -> 把安全快照同步到 App Group 容器
+
+DailyVibePlusWidget
+  -> 读取 App Group 快照
+  -> 作为 macOS 系统统一管理的 WidgetKit 小组件展示
+```
+
+原生 App 位于：
 
 ```text
 apps/macos
 ```
 
-这个 App 会读取 `~/daily-vibe-reports/latest.json`，同步到 App Group 容器，并提供一个真正出现在 macOS 小组件库里的 WidgetKit extension。
+推荐的本地使用流程：
 
-打开项目：
+1. 生成或准备 `~/daily-vibe-reports/latest.json`：
 
-```bash
-open apps/macos/DailyVibePlus.xcodeproj
-```
+   ```bash
+   daily-vibe analyze today --out ~/daily-vibe-reports
+   ```
 
-用 Xcode 构建，或运行：
+2. 打开 Xcode 项目：
+
+   ```bash
+   open apps/macos/DailyVibePlus.xcodeproj
+   ```
+
+3. 在 Xcode 中为两个 target 选择同一个开发团队和 App Group：
+
+   ```text
+   DailyVibePlus
+   DailyVibePlusWidget
+   ```
+
+   默认 App Group：
+
+   ```text
+   group.com.dailyvibeplus.app
+   ```
+
+4. 运行 `DailyVibePlus`，选择 `~/daily-vibe-reports`，然后点击 `Refresh Now`。
+
+5. 从 macOS 小组件库添加 `Daily Vibe Plus`。
+
+命令行构建：
 
 ```bash
 xcodebuild \
@@ -366,11 +404,23 @@ xcodebuild \
   build
 ```
 
-签名、App Group 和使用细节见 `apps/macos/README.md`。
+命令行测试：
+
+```bash
+xcodebuild \
+  -project apps/macos/DailyVibePlus.xcodeproj \
+  -scheme DailyVibePlus \
+  -destination 'platform=macOS' \
+  test
+```
+
+macOS App 和 Widget 不读取 Claude Code 或 Codex 原始会话，也不会调用任何 LLM provider。它们只展示 CLI 生成的稳定 `latest.json`。签名、App Group 和使用细节见 `apps/macos/README.md`。
 
 ## 桌面小组件集成
 
-如果暂时不想处理原生 App 的签名和 App Group，可以使用轻量桌面小组件集成作为本地预览。它通过 Übersicht 在桌面上放一个小卡片。
+原生 macOS App 和 WidgetKit extension 是系统统一管理小组件的主路径。桌面小组件集成保留为轻量本地预览或 fallback，适合暂时不想配置 Xcode 签名和 App Group 的情况。
+
+它通过 Übersicht 在桌面上放一个小卡片。
 
 安装 Übersicht：
 

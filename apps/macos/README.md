@@ -71,6 +71,67 @@ xcodebuild \
 
 The app reads the selected folder using a security-scoped bookmark and copies `latest.json` into the shared App Group container. The WidgetKit extension reads only that shared copy.
 
+## Architecture
+
+```text
+daily-vibe CLI
+  -> scans local Claude/Codex/SpecStory sessions
+  -> redacts sensitive content
+  -> calls the configured LLM provider
+  -> writes ~/daily-vibe-reports/latest.json
+
+DailyVibePlus.app
+  -> reads latest.json from the user-selected report folder
+  -> decodes the LatestReport contract
+  -> writes the same JSON snapshot into the App Group container
+  -> asks WidgetKit to reload timelines
+
+DailyVibePlusWidget.appex
+  -> reads only the App Group latest.json snapshot
+  -> displays the report in the macOS widget system
+```
+
+The macOS app and widget are intentionally display-only. They do not read raw session logs, do not run the Node CLI, and do not call any LLM provider.
+
+## Troubleshooting
+
+### Widget does not show new data
+
+Run the CLI again, then open the app and click `Refresh Now`:
+
+```bash
+daily-vibe analyze today --out ~/daily-vibe-reports
+```
+
+WidgetKit controls background refresh timing, so the explicit refresh button is the fastest way to sync a new report during the MVP stage.
+
+### Xcode asks for signing or App Group settings
+
+Select the same development team for both targets:
+
+```text
+DailyVibePlus
+DailyVibePlusWidget
+```
+
+Then make sure both targets contain the same App Group:
+
+```text
+group.com.dailyvibeplus.app
+```
+
+For personal local use, a Personal Team is enough. Distribution outside your machine may require a paid Apple Developer account and notarization.
+
+### No latest.json found
+
+Generate a report first:
+
+```bash
+daily-vibe analyze today --out ~/daily-vibe-reports
+```
+
+If the LLM provider is not connected yet, you can still test the app and widget with a sample `latest.json` in `~/daily-vibe-reports`.
+
 ## Current limitations
 
 - The app does not run the Node CLI yet.
