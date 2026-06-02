@@ -43,6 +43,7 @@
   "files": [
     "./bin",
     "./dist",
+    "./integrations",
     "./oclif.manifest.json"
   ],
   "homepage": "https://github.com/floating0516/daily-vibe-plus",

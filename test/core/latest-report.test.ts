@@ -18,18 +18,18 @@ describe('latest report', () => {
   it('extracts summary, highlights, and blockers from markdown sections', () => {
     const report = buildLatestReport(resultWithDailyReport(`# Daily Report
 
-Today shipped the menu bar integration.
+Today shipped the widget integration.
 
 ## Key Outputs
 - Added latest.json
-- Added SwiftBar plugin
+- Added WidgetKit app
 
 ## Blockers
 - Schedule command is still pending
 `), {daily: '/tmp/daily.md', knowledge: '/tmp/knowledge.md'})
 
-    expect(report.summary).to.equal('Today shipped the menu bar integration.')
-    expect(report.highlights).to.deep.equal(['Added latest.json', 'Added SwiftBar plugin'])
+    expect(report.summary).to.equal('Today shipped the widget integration.')
+    expect(report.highlights).to.deep.equal(['Added latest.json', 'Added WidgetKit app'])
     expect(report.blockers).to.deep.equal(['Schedule command is still pending'])
     expect(report.files.daily).to.equal('/tmp/daily.md')
     expect(report.stats.totalSessions).to.equal(3)

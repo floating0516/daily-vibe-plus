@@ -19,8 +19,9 @@ Daily Vibe Plus 是一个命令行工具，用来把本地 AI 编程会话整理
 - 通过 `daily-vibe config test` 检查配置。
 - 通过 `daily-vibe init` 进行交互式初始化。
 - 默认不写 raw `data.json`。
-- 稳定输出 `latest.md` 和 `latest.json`，方便菜单栏和桌面集成读取。
-- 提供 SwiftBar 集成，用于在 macOS 菜单栏显示最新日报。
+- 稳定输出 `latest.md` 和 `latest.json`，方便原生 App 和桌面集成读取。
+- 提供原生 macOS App 和 WidgetKit extension，用于系统统一管理的小组件。
+- 提供轻量桌面小组件集成，用于本地预览。
 
 ## 安装
 
@@ -244,6 +245,27 @@ daily-vibe analyze range --from 2026-05-01 --to 2026-05-07 --out ./reports
 
 range 命令支持与 `analyze today` 相同的分析、过滤、脱敏、provider、JSON、preview 和 raw-data 选项。
 
+### `daily-vibe widget export`
+
+导出桌面小组件或本地 dashboard，用来读取 `latest.json`。
+
+```bash
+daily-vibe widget export --target ubersicht --report-dir ~/daily-vibe-reports
+daily-vibe widget export --target html --out ~/daily-vibe-widget --report-dir ~/daily-vibe-reports
+```
+
+常用选项：
+
+```text
+--target <target>        html、ubersicht 或 all
+--report-dir <dir>      包含 latest.json 的报告目录
+--out <dir>             HTML dashboard 输出目录
+--ubersicht-dir <dir>   Übersicht widgets 目录
+--force                 覆盖已有 widget 文件
+```
+
+这个命令不会调用 LLM，只会安装读取 `latest.json` 的展示文件。之后再通过 `daily-vibe analyze today --out` 生成或刷新真实报告。
+
 ### `daily-vibe redact test`
 
 测试脱敏规则。
@@ -318,37 +340,60 @@ Daily Vibe Plus 会读取本地 AI 编程会话日志。这些日志可能包含
 
 脱敏可以降低风险，但不是绝对保证。配置的 LLM provider 会收到用于生成总结的已脱敏 session 内容。
 
-## SwiftBar 菜单栏集成
+## 原生 macOS App 和 WidgetKit
 
-Daily Vibe Plus 提供 SwiftBar 插件：
+Daily Vibe Plus 也包含一个原生 macOS companion app：
 
 ```text
-integrations/swiftbar/daily-vibe-plus.5m.sh
+apps/macos
 ```
 
-安装 SwiftBar：
+这个 App 会读取 `~/daily-vibe-reports/latest.json`，同步到 App Group 容器，并提供一个真正出现在 macOS 小组件库里的 WidgetKit extension。
+
+打开项目：
 
 ```bash
-brew install --cask swiftbar
+open apps/macos/DailyVibePlus.xcodeproj
 ```
 
-先生成一次 latest report：
+用 Xcode 构建，或运行：
+
+```bash
+xcodebuild \
+  -project apps/macos/DailyVibePlus.xcodeproj \
+  -scheme DailyVibePlus \
+  -destination 'platform=macOS' \
+  build
+```
+
+签名、App Group 和使用细节见 `apps/macos/README.md`。
+
+## 桌面小组件集成
+
+如果暂时不想处理原生 App 的签名和 App Group，可以使用轻量桌面小组件集成作为本地预览。它通过 Übersicht 在桌面上放一个小卡片。
+
+安装 Übersicht：
+
+```bash
+brew install --cask ubersicht
+```
+
+导出 widget：
+
+```bash
+daily-vibe widget export --target ubersicht --report-dir ~/daily-vibe-reports
+```
+
+LLM provider 接好之后，生成或刷新 latest report：
 
 ```bash
 daily-vibe analyze today --out ~/daily-vibe-reports
 ```
 
-安装插件：
+widget 只读取 `~/daily-vibe-reports/latest.json`。如果 API 暂时不可用，它会显示缺少报告的状态，等 `latest.json` 生成后会自动显示真实内容。
 
-```bash
-mkdir -p ~/SwiftBarPlugins
-cp integrations/swiftbar/daily-vibe-plus.5m.sh ~/SwiftBarPlugins/
-chmod +x ~/SwiftBarPlugins/daily-vibe-plus.5m.sh
-```
+更多说明见 `integrations/desktop-widget/README.md`。
 
-打开 SwiftBar，并选择 `~/SwiftBarPlugins` 作为插件目录。菜单栏项目会每五分钟刷新一次，并读取 `~/daily-vibe-reports/latest.json`。
-
-更多说明见 `integrations/swiftbar/README.md`。
 
 ## 开发
 

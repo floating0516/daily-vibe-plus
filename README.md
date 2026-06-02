@@ -19,8 +19,9 @@ This fork focuses on safer defaults and better operator control: dry runs, sourc
 - Config validation through `daily-vibe config test`.
 - Interactive setup through `daily-vibe init`.
 - Raw `data.json` output is disabled by default.
-- Stable `latest.md` and `latest.json` output for menu bar and desktop integrations.
-- SwiftBar integration for showing the latest report in the macOS menu bar.
+- Stable `latest.md` and `latest.json` output for native app and desktop integrations.
+- Native macOS app and WidgetKit extension for system-managed widgets.
+- Desktop widget integration for lightweight local preview.
 
 ## Installation
 
@@ -244,6 +245,27 @@ daily-vibe analyze range --from 2026-05-01 --to 2026-05-07 --out ./reports
 
 The range command supports the same analysis, filter, redaction, provider, JSON, preview, and raw-data options as `analyze today`.
 
+### `daily-vibe widget export`
+
+Exports a desktop widget or local dashboard that reads `latest.json`.
+
+```bash
+daily-vibe widget export --target ubersicht --report-dir ~/daily-vibe-reports
+daily-vibe widget export --target html --out ~/daily-vibe-widget --report-dir ~/daily-vibe-reports
+```
+
+Important options:
+
+```text
+--target <target>        html, ubersicht, or all
+--report-dir <dir>      Directory containing latest.json
+--out <dir>             Output directory for the HTML dashboard
+--ubersicht-dir <dir>   Übersicht widgets directory
+--force                 Overwrite existing widget files
+```
+
+The widget export does not call an LLM. It only installs files that read the stable `latest.json` generated later by `daily-vibe analyze today --out`.
+
 ### `daily-vibe redact test`
 
 Tests redaction rules against input text or a file.
@@ -318,37 +340,60 @@ Recommended workflow:
 
 Redaction reduces risk but is not a guarantee. The configured LLM provider receives the redacted session content used for summary generation.
 
-## SwiftBar menu bar integration
+## Native macOS app and WidgetKit
 
-Daily Vibe Plus includes a SwiftBar plugin in:
+Daily Vibe Plus also includes a native macOS companion app under:
 
 ```text
-integrations/swiftbar/daily-vibe-plus.5m.sh
+apps/macos
 ```
 
-Install SwiftBar:
+This app reads `~/daily-vibe-reports/latest.json`, syncs it into an App Group container, and provides a WidgetKit extension that appears in the normal macOS widget gallery.
+
+Open the project:
 
 ```bash
-brew install --cask swiftbar
+open apps/macos/DailyVibePlus.xcodeproj
 ```
 
-Generate a latest report:
+Build with Xcode or:
+
+```bash
+xcodebuild \
+  -project apps/macos/DailyVibePlus.xcodeproj \
+  -scheme DailyVibePlus \
+  -destination 'platform=macOS' \
+  build
+```
+
+See `apps/macos/README.md` for signing, App Group, and usage details.
+
+## Desktop widget integration
+
+For a lightweight preview without signing the native app, use the desktop widget integration. It uses Übersicht to place a small report card directly on the desktop.
+
+Install Übersicht:
+
+```bash
+brew install --cask ubersicht
+```
+
+Export the widget:
+
+```bash
+daily-vibe widget export --target ubersicht --report-dir ~/daily-vibe-reports
+```
+
+Generate or refresh the latest report when your LLM provider is connected:
 
 ```bash
 daily-vibe analyze today --out ~/daily-vibe-reports
 ```
 
-Install the plugin:
+The widget reads only `~/daily-vibe-reports/latest.json`. If your API provider is not working yet, the widget will show a missing-report state until that file exists.
 
-```bash
-mkdir -p ~/SwiftBarPlugins
-cp integrations/swiftbar/daily-vibe-plus.5m.sh ~/SwiftBarPlugins/
-chmod +x ~/SwiftBarPlugins/daily-vibe-plus.5m.sh
-```
+See `integrations/desktop-widget/README.md` for details.
 
-Open SwiftBar and select `~/SwiftBarPlugins` as the plugin folder. The menu bar item will refresh every five minutes and read `~/daily-vibe-reports/latest.json`.
-
-See `integrations/swiftbar/README.md` for details.
 
 ## Development
 

@@ -7,6 +7,9 @@
 /node_modules
 oclif.manifest.json
 /reports
+/tsconfig.tsbuildinfo
+*.xcuserstate
+**/xcuserdata/
 
 
 yarn.lock

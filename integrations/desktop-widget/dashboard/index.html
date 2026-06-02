@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Daily Vibe Plus</title>
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: #0d1117;
+      color: #f5f7fb;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+    }
+    .card {
+      width: min(380px, calc(100vw - 32px));
+      box-sizing: border-box;
+      padding: 20px;
+      border-radius: 24px;
+      background: rgba(18, 22, 33, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 22px 60px rgba(0, 0, 0, 0.35);
+    }
+    .header { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+    .eyebrow, .updated, .hint { color: rgba(245, 247, 251, 0.58); font-size: 12px; line-height: 1.4; }
+    h1 { margin: 4px 0 0; font-size: 20px; letter-spacing: -0.02em; }
+    .badge { padding: 5px 9px; border-radius: 999px; background: rgba(108, 139, 255, 0.22); color: #d8dfff; font-size: 12px; font-weight: 600; white-space: nowrap; }
+    .summary { margin-top: 16px; color: rgba(245, 247, 251, 0.9); font-size: 14px; line-height: 1.5; }
+    .section { margin-top: 16px; }
+    .section-title { margin-bottom: 8px; color: rgba(245, 247, 251, 0.7); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+    .item { margin-top: 7px; padding: 8px 10px; border-radius: 12px; background: rgba(255, 255, 255, 0.07); color: rgba(245, 247, 251, 0.88); font-size: 13px; line-height: 1.35; }
+    .blockers .item { background: rgba(255, 180, 90, 0.13); }
+    .stats { display: flex; gap: 10px; margin-top: 16px; color: rgba(245, 247, 251, 0.72); font-size: 12px; }
+    .actions { display: flex; gap: 10px; margin-top: 16px; }
+    a { color: #d8dfff; text-decoration: none; font-size: 12px; }
+    a:hover { text-decoration: underline; }
+    .error { border-color: rgba(255, 120, 120, 0.34); }
+  </style>
+</head>
+<body>
+  <main id="app" class="card">
+    <div class="eyebrow">Daily Vibe Plus</div>
+    <h1>Loading latest report...</h1>
+  </main>
+
+  <script>
+    const REPORT_JSON_PATH = '__REPORT_JSON_PATH__'
+    const REPORT_JSON_URL = `file://${REPORT_JSON_PATH}`
+
+    function escapeHtml(value) {
+      return String(value || '').replace(/[&<>"]/g, (char) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[char]))
+    }
+
+    function truncate(value, max = 160) {
+      if (!value) return ''
+      return value.length > max ? `${value.slice(0, max - 3)}...` : value
+    }
+
+    function renderState(title, summary, extra = '') {
+      document.getElementById('app').innerHTML = `
+        <div class="eyebrow">Daily Vibe Plus</div>
+        <h1>${escapeHtml(title)}</h1>
+        <div class="summary">${escapeHtml(summary)}</div>
+        ${extra}
+      `
+    }
+
+    function renderReport(data) {
+      const highlights = Array.isArray(data.highlights) ? data.highlights.slice(0, 5) : []
+      const blockers = Array.isArray(data.blockers) ? data.blockers.slice(0, 3) : []
+      const stats = data.stats || {}
+      const actions = []
+      if (data.files && data.files.latestMarkdown) actions.push(`<a href="file://${escapeHtml(data.files.latestMarkdown)}">Open latest report</a>`)
+      actions.push(`<a href="file://${escapeHtml(REPORT_JSON_PATH.replace(/\/latest\.json$/, ''))}">Open report folder</a>`)
+
+      document.getElementById('app').innerHTML = `
+        <div class="header">
+          <div>
+            <div class="eyebrow">Daily Vibe Plus</div>
+            <h1>${escapeHtml(data.date || 'Latest report')}</h1>
+          </div>
+          <div class="badge">${escapeHtml(stats.totalSessions ?? 0)} sessions</div>
+        </div>
+        <div class="summary">${escapeHtml(truncate(data.summary || 'No summary available.', 200))}</div>
+        ${highlights.length ? `<div class="section"><div class="section-title">Highlights</div>${highlights.map(item => `<div class="item">${escapeHtml(truncate(item, 120))}</div>`).join('')}</div>` : ''}
+        ${blockers.length ? `<div class="section blockers"><div class="section-title">Blockers</div>${blockers.map(item => `<div class="item">${escapeHtml(truncate(item, 120))}</div>`).join('')}</div>` : ''}
+        <div class="stats"><span>${escapeHtml(stats.totalEvents ?? 0)} events</span><span>${escapeHtml(stats.totalProblems ?? 0)} problems</span></div>
+        <div class="updated">Updated: ${escapeHtml(data.updatedAt || 'unknown')}</div>
+        <div class="actions">${actions.join('')}</div>
+      `
+    }
+
+    fetch(REPORT_JSON_URL)
+      .then((response) => {
+        if (!response.ok) throw new Error(`Could not read ${REPORT_JSON_PATH}`)
+        return response.json()
+      })
+      .then(renderReport)
+      .catch((error) => {
+        document.getElementById('app').classList.add('error')
+        renderState(
+          'No latest report available',
+          `Could not load latest.json from ${REPORT_JSON_PATH}. If your browser blocks local files, use the Übersicht widget export instead. ${error.message || error}`,
+          '<div class="hint">Generate later with: daily-vibe analyze today --out ~/daily-vibe-reports</div>'
+        )
+      })
+  </script>
+</body>
+</html>
